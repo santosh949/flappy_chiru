@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+    <!-- Primary Meta Tags -->
+    <title>Chiru Flappy - Megastar Edition</title>
+    <style>
+        :root {
+            --gold: #FFD700;
+            --white: #ffffff;
+            --shadow: rgba(0, 0, 0, 0.5);
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: #1a1a1a;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            user-select: none;
+            touch-action: none;
+        }
+
+        #game-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            max-width: 500px;
+            max-height: 800px;
+            background-color: #87CEEB;
+            overflow: hidden;
+            box-shadow: 0 0 40px rgba(0, 0, 0, 0.8);
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        #ui-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        #score-container {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: var(--white);
+            text-shadow: 2px 2px 4px var(--shadow);
+            z-index: 100;
+        }
+
+        #score-display {
+            font-size: 36px;
+            font-weight: 900;
+        }
+
+        #best-score {
+            font-size: 22px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            opacity: 0.9;
+        }
+
+        .screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: rgba(0, 0, 0, 0.6);
+            color: var(--white);
+            z-index: 50;
+            pointer-events: all;
+            text-align: center;
+            backdrop-filter: blur(5px);
+            transition: opacity 0.4s ease;
+        }
+
+        #loading-screen {
+            background: #1a1a1a;
+            z-index: 1000;
+            backdrop-filter: none;
+        }
+
+        .hidden {
+            opacity: 0 !important;
+            pointer-events: none !important;
+        }
+
+        h1 {
+            font-size: 48px;
+            color: var(--gold);
+            margin: 0 0 10px 0;
+            text-transform: uppercase;
+            text-shadow: 4px 4px 0px #000;
+        }
+
+        p {
+            font-size: 20px;
+            margin-bottom: 30px;
+        }
+
+        button {
+            padding: 20px 50px;
+            font-size: 24px;
+            font-weight: 900;
+            background: var(--gold);
+            color: #000;
+            border: none;
+            border-radius: 60px;
+            cursor: pointer;
+            box-shadow: 0 6px 0px #b8860b;
+            transition: transform 0.1s;
+            text-transform: uppercase;
+        }
+
+        button:active {
+            transform: translateY(4px);
+            box-shadow: 0 2px 0px #b8860b;
+        }
+
+        #death-screen img {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            object-fit: cover;
+            z-index: -1;
+        }
+
+        #death-content {
+            background: rgba(0, 0, 0, 0.7);
+            padding: 30px;
+            border-radius: 20px;
+            border: 3px solid var(--gold);
+        }
+
+        #loader {
+            width: 250px;
+            height: 12px;
+            background: #333;
+            border-radius: 6px;
+            margin-top: 20px;
+            overflow: hidden;
+            border: 1px solid #444;
+        }
+
+        #loader-bar {
+            width: 0%;
+            height: 100%;
+            background: var(--gold);
+            transition: width 0.2s;
+        }
+
+        #how-to-start {
+            margin-top: 25px;
+            font-size: 16px;
+            color: var(--gold);
+            font-weight: bold;
+            letter-spacing: 1px;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% {
+                transform: scale(1);
+                opacity: 1;
+            }
+
+            50% {
+                transform: scale(1.05);
+                opacity: 0.7;
+            }
+
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="game-container">
+        <canvas id="gameCanvas"></canvas>
+
+        <div id="ui-layer">
+            <div id="score-container">
+                <div id="score-display">Score: 0</div>
+                <div id="best-score">🏆 0</div>
+            </div>
+
+            <!-- Loading Screen -->
+            <div id="loading-screen" class="screen">
+                <h1>MEGA LOADING</h1>
+                <div id="loader">
+                    <div id="loader-bar"></div>
+                </div>
+            </div>
+
+            <!-- Start Screen -->
+            <div id="start-screen" class="screen hidden">
+                <h1>CHIRU FLAPPY</h1>
+                <p>Mega Action Awaits!</p>
+                <button id="start-btn">TAP TO PLAY</button>
+                <div id="how-to-start">CLICK or PRESS SPACE TO START</div>
+            </div>
+
+            <!-- Death Screen -->
+            <div id="death-screen" class="screen hidden">
+                <img src="game_over_meme.png" alt="Death Meme">
+                <div id="death-content">
+                    <h1>WOW! DIED!</h1>
+                    <p>Final Score: <span id="final-score">0</span></p>
+                    <button id="restart-btn">RESTART</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const loadingScreen = document.getElementById('loading-screen');
+        const loaderBar = document.getElementById('loader-bar');
+        const startScreen = document.getElementById('start-screen');
+        const deathScreen = document.getElementById('death-screen');
+        const scoreDisplay = document.getElementById('score-display');
+        const bestScoreDisplay = document.getElementById('best-score');
+        const finalScoreDisplay = document.getElementById('final-score');
+
+        const ASSETS = {
+            bird: 'chiranjeevi_face.png',
+            pipe: 'pipe_image.png',
+            bg: 'background.jpg',
+            audio: {
+                welcome: 'welcome.mp3',
+                wow: 'wow.mp3',
+                song: 'song.mp3'
+            }
+        };
+
+        const images = {};
+        const audio = {};
+        let assetsLoaded = 0;
+        const totalAssets = 6; // 3 images + 3 sounds
+
+        function onAssetLoad() {
+            assetsLoaded++;
+            const p = Math.min((assetsLoaded / totalAssets) * 100, 100);
+            loaderBar.style.width = p + '%';
+            if (assetsLoaded >= totalAssets) {
+                setTimeout(showStart, 500);
+            }
+        }
+
+        // Fail-safe
+        setTimeout(() => { if (gameState === 'START') showStart(); }, 4000);
+
+        function showStart() {
+            loadingScreen.classList.add('hidden');
+            if (gameState === 'START') {
+                startScreen.classList.remove('hidden');
+            }
+        }
+
+        function initAssets() {
+            ['bird', 'pipe', 'bg'].forEach(n => {
+                images[n] = new Image();
+                images[n].src = ASSETS[n];
+                images[n].onload = onAssetLoad;
+                images[n].onerror = onAssetLoad;
+            });
+            Object.keys(ASSETS.audio).forEach(k => {
+                audio[k] = new Audio(ASSETS.audio[k]);
+                audio[k].addEventListener('loadeddata', onAssetLoad, { once: true });
+                audio[k].addEventListener('error', onAssetLoad, { once: true });
+                audio[k].load();
+            });
+        }
+
+        const GRAVITY = 0.35;
+        const FLAP = -7.5;
+        const PIPE_WIDTH = 90;
+        const PIPE_GAP = 220;
+        const SPAWN_TIME = 1500;
+
+        let gameState = 'START';
+        let score = 0;
+        let bestScore = localStorage.getItem('chiruBestScore') || 0;
+        let lastTime = 0;
+        let lastPipe = 0;
+        let welcomePlayed = false;
+        let pipes = [];
+
+        class Bird {
+            constructor() {
+                this.w = 60;
+                this.h = 60;
+                this.reset();
+            }
+            reset() {
+                this.x = 80;
+                this.y = canvas.height / 2;
+                this.v = 0;
+            }
+            update() {
+                if (gameState === 'PLAYING') {
+                    this.v += GRAVITY;
+                    this.y += this.v;
+                    if (this.y + this.h > canvas.height) { this.y = canvas.height - this.h; finish(); }
+                    if (this.y < 0) { this.y = 0; this.v = 0; }
+
+                    if (this.v > 0) {
+                        if (audio.song.paused) audio.song.play().catch(() => { });
+                        audio.song.loop = true;
+                    } else {
+                        audio.song.pause();
+                    }
+                }
+            }
+            draw() {
+                ctx.save();
+                const rot = Math.min(Math.PI / 4, Math.max(-Math.PI / 4, this.v * 0.04));
+                ctx.translate(this.x + this.w / 2, this.y + this.h / 2);
+                ctx.rotate(rot);
+                if (images.bird.complete && images.bird.naturalWidth > 0) {
+                    ctx.drawImage(images.bird, -this.w / 2, -this.h / 2, this.w, this.h);
+                } else {
+                    ctx.fillStyle = 'yellow';
+                    ctx.fillRect(-this.w / 2, -this.h / 2, this.w, this.h);
+                }
+                ctx.restore();
+            }
+        }
+
+        class Pipe {
+            constructor() {
+                this.x = canvas.width;
+                this.gapY = Math.random() * (canvas.height - PIPE_GAP - 250) + 125;
+                this.done = false;
+            }
+            draw() {
+                if (images.pipe.complete && images.pipe.naturalWidth > 0) {
+                    ctx.drawImage(images.pipe, this.x, 0, PIPE_WIDTH, this.gapY);
+                    ctx.drawImage(images.pipe, this.x, this.gapY + PIPE_GAP, PIPE_WIDTH, canvas.height - (this.gapY + PIPE_GAP));
+                } else {
+                    ctx.fillStyle = '#2e7d32';
+                    ctx.fillRect(this.x, 0, PIPE_WIDTH, this.gapY);
+                    ctx.fillRect(this.x, this.gapY + PIPE_GAP, PIPE_WIDTH, canvas.height - (this.gapY + PIPE_GAP));
+                }
+            }
+            update(dt) {
+                this.x -= 0.22 * dt;
+            }
+        }
+
+        const bird = new Bird();
+
+        function resize() {
+            canvas.width = canvas.offsetWidth;
+            canvas.height = canvas.offsetHeight;
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        function begin() {
+            console.log("Beginning game...");
+            gameState = 'PLAYING';
+            score = 0;
+            pipes = [];
+            bird.reset();
+            scoreDisplay.innerText = "Score: 0";
+            startScreen.classList.add('hidden');
+            deathScreen.classList.add('hidden');
+            loadingScreen.classList.add('hidden');
+            audio.wow.currentTime = 0;
+            audio.wow.play().catch(() => { });
+            lastPipe = performance.now();
+        }
+
+        function finish() {
+            if (gameState === 'DEATH') return;
+            gameState = 'DEATH';
+            audio.song.pause();
+            audio.wow.currentTime = 0;
+            audio.wow.play().catch(() => { });
+            if (score > bestScore) {
+                bestScore = score;
+                localStorage.setItem('chiruBestScore', bestScore);
+                bestScoreDisplay.innerText = "🏆 " + bestScore;
+            }
+            finalScoreDisplay.innerText = score;
+            deathScreen.classList.remove('hidden');
+        }
+
+        function tick(timestamp) {
+            if (!lastTime) lastTime = timestamp;
+            const dt = timestamp - lastTime;
+            lastTime = timestamp;
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            if (images.bg.complete && images.bg.naturalWidth > 0) {
+                ctx.drawImage(images.bg, 0, 0, canvas.width, canvas.height);
+            }
+
+            if (gameState === 'PLAYING') {
+                if (timestamp - lastPipe > SPAWN_TIME) {
+                    pipes.push(new Pipe());
+                    lastPipe = timestamp;
+                }
+                for (let i = pipes.length - 1; i >= 0; i--) {
+                    const p = pipes[i];
+                    p.update(dt);
+                    p.draw();
+                    if (bird.x + bird.w - 10 > p.x && bird.x + 10 < p.x + PIPE_WIDTH) {
+                        if (bird.y + 10 < p.gapY || bird.y + bird.h - 10 > p.gapY + PIPE_GAP) finish();
+                    }
+                    if (!p.done && p.x + PIPE_WIDTH < bird.x) {
+                        p.done = true; score++; scoreDisplay.innerText = "Score: " + score;
+                    }
+                    if (p.x + PIPE_WIDTH < 0) pipes.splice(i, 1);
+                }
+            }
+
+            bird.update();
+            bird.draw();
+            requestAnimationFrame(tick);
+        }
+
+        function act() {
+            if (assetsLoaded < totalAssets && (performance.now() < 4000)) return;
+
+            if (!welcomePlayed) {
+                audio.welcome.play().catch(() => { });
+                welcomePlayed = true;
+            }
+
+            if (gameState === 'START' || gameState === 'DEATH') {
+                begin();
+            } else if (gameState === 'PLAYING') {
+                bird.v = FLAP;
+            }
+        }
+
+        window.addEventListener('keydown', (e) => {
+            if (e.key === ' ' || e.key === 'ArrowUp') {
+                e.preventDefault();
+                act();
+            }
+        });
+
+        document.addEventListener('mousedown', (e) => {
+            if (e.target.tagName !== 'BUTTON') act();
+        });
+
+        document.addEventListener('touchstart', (e) => {
+            if (e.target.tagName !== 'BUTTON') { e.preventDefault(); act(); }
+        }, { passive: false });
+
+        document.getElementById('start-btn').onclick = (e) => { e.stopPropagation(); act(); };
+        document.getElementById('restart-btn').onclick = (e) => { e.stopPropagation(); act(); };
+
+        initAssets();
+        bestScoreDisplay.innerText = "🏆 " + bestScore;
+        requestAnimationFrame(tick);
+    </script>
+</body>
+
+</html>
